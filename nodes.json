@@ -1,0 +1,21 @@
+{
+  "updated_at": "2023-10-27T10:00:00Z",
+  "nodes": [
+    {
+      "id": 101,
+      "name": "香港 CN2 GIA",
+      "country_code": "hk",
+      "protocol": "vmess",
+      "ping": 35,
+      "link": "vmess://eyJhZGQiOiIxMjcuMC4wLjEiLCJ..."
+    },
+    {
+      "id": 102,
+      "name": "美国 AWS",
+      "country_code": "us",
+      "protocol": "trojan",
+      "ping": 150,
+      "link": "trojan://password@1.1.1.1:443"
+    }
+  ]
+}

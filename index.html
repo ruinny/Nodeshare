@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RocketNode - 极速节点分享</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.5s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        
+        /* 玻璃拟态背景 */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .node-card { transition: all 0.3s ease; }
+        .node-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen text-gray-800 antialiased">
+
+    <div id="app" class="container mx-auto px-4 py-12 max-w-5xl">
+        
+        <header class="text-center mb-12">
+            <div class="inline-block p-3 rounded-full bg-blue-600 text-white mb-4 shadow-lg">
+                <i class="fa-solid fa-rocket text-3xl"></i>
+            </div>
+            <h1 class="text-4xl font-extrabold text-slate-800 mb-2 tracking-tight">RocketNode Acceleration</h1>
+            <p class="text-slate-500">实时更新的免费/公益加速节点分享</p>
+            
+            <div class="mt-6 flex justify-center space-x-6 text-sm font-medium">
+                <span class="flex items-center text-green-600 bg-green-100 px-3 py-1 rounded-full">
+                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                    服务正常
+                </span>
+                <span class="flex items-center text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+                    <i class="fa-solid fa-database mr-2"></i>
+                    节点数量: {{ nodes.length }}
+                </span>
+                <span class="flex items-center text-gray-500 bg-gray-100 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-200" @click="fetchNodes">
+                    <i class="fa-solid fa-rotate-right mr-2" :class="{'animate-spin': loading}"></i>
+                    {{ lastUpdated }}
+                </span>
+            </div>
+        </header>
+
+        <main>
+            <div v-if="loading" class="flex justify-center py-20">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+
+            <div v-else-if="error" class="text-center py-10 bg-red-50 rounded-xl border border-red-100">
+                <p class="text-red-500 mb-2"><i class="fa-solid fa-circle-exclamation mr-2"></i>无法获取节点数据</p>
+                <button @click="fetchNodes" class="text-sm text-blue-600 underline hover:text-blue-800">重试</button>
+            </div>
+
+            <div v-else-if="nodes.length === 0" class="text-center py-20 text-gray-400">
+                <i class="fa-regular fa-folder-open text-4xl mb-4"></i>
+                <p>暂时没有可用节点</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="(node, index) in nodes" :key="node.id" class="node-card bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden relative group">
+                    
+                    <div class="absolute top-0 left-0 px-3 py-1 text-xs font-bold text-white rounded-br-lg z-10"
+                         :class="getProtocolColor(node.protocol)">
+                        {{ node.protocol.toUpperCase() }}
+                    </div>
+
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4 mt-2">
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800 flex items-center">
+                                    <img :src="`https://flagcdn.com/24x18/${node.country_code.toLowerCase()}.png`" class="mr-2 rounded-sm shadow-sm" alt="flag">
+                                    {{ node.name }}
+                                </h3>
+                                <p class="text-xs text-gray-400 mt-1">ID: {{ node.id }}</p>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-xs font-bold" :class="getPingColor(node.ping)">{{ node.ping }}ms</span>
+                                <div class="w-10 h-1.5 bg-gray-200 rounded-full mt-1 overflow-hidden">
+                                    <div class="h-full rounded-full" :class="getPingBg(node.ping)" style="width: 80%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100 font-mono text-xs text-gray-500 break-all line-clamp-2 h-12">
+                            {{ node.link }}
+                        </div>
+
+                        <div class="flex space-x-3">
+                            <button @click="copyLink(node.link, index)" 
+                                class="flex-1 bg-gray-900 hover:bg-gray-800 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex justify-center items-center">
+                                <i class="mr-2" :class="copiedIndex === index ? 'fa-solid fa-check' : 'fa-regular fa-copy'"></i>
+                                {{ copiedIndex === index ? '已复制' : '复制链接' }}
+                            </button>
+                            <button @click="showQrcode(node.link)" class="w-10 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center transition-colors">
+                                <i class="fa-solid fa-qrcode"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="mt-20 text-center text-gray-400 text-sm pb-10">
+            <p>&copy; 2025 RocketNode Share. All rights reserved.</p>
+        </footer>
+
+        <div v-if="qrModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="qrModalOpen = false">
+            <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-xs w-full text-center" @click.stop>
+                <h3 class="text-lg font-bold mb-4">扫描二维码导入</h3>
+                <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentQrLink)}`" class="mx-auto rounded-lg mb-4 border p-2">
+                <button @click="qrModalOpen = false" class="w-full py-2 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium">关闭</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // ---------------------------------------------------------
+                // 1. 配置 API 接口地址 (重点)
+                // ---------------------------------------------------------
+                // 这里的 URL 就是你用来"推送"更新的地方。
+                // 你只需要在服务器上放置一个名为 nodes.json 的文件。
+                // 当你想更新节点时，覆盖这个 json 文件即可。
+                const API_URL = './nodes.json'; 
+
+                const nodes = ref([]);
+                const loading = ref(true);
+                const error = ref(false);
+                const lastUpdated = ref('刚刚');
+                const copiedIndex = ref(-1);
+                const qrModalOpen = ref(false);
+                const currentQrLink = ref('');
+
+                // 获取数据
+                const fetchNodes = async () => {
+                    loading.value = true;
+                    error.value = false;
+                    try {
+                        // 模拟网络延迟，让加载动画显示一会（实际使用可去掉）
+                        await new Promise(r => setTimeout(r, 600));
+                        
+                        const response = await fetch(API_URL);
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        
+                        const data = await response.json();
+                        nodes.value = data.nodes; // 假设JSON结构是 { nodes: [...] }
+                        
+                        const now = new Date();
+                        lastUpdated.value = `更新于 ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    } catch (err) {
+                        console.error("Failed to fetch nodes:", err);
+                        error.value = true;
+                        // 如果请求失败，加载一些演示数据防止页面空白（实际项目可删除）
+                        loadDemoData(); 
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                // 演示数据 (当 fetch 失败时使用)
+                const loadDemoData = () => {
+                    nodes.value = [
+                        { id: 1, name: '香港高速 HK-01', country_code: 'hk', protocol: 'vmess', ping: 45, link: 'vmess://eyJ...' },
+                        { id: 2, name: '日本东京 JP-T2', country_code: 'jp', protocol: 'ss', ping: 89, link: 'ss://Ym...' },
+                        { id: 3, name: '美国西部 US-W1', country_code: 'us', protocol: 'trojan', ping: 160, link: 'trojan://pass...' },
+                        { id: 4, name: '新加坡 SG-S3', country_code: 'sg', protocol: 'vless', ping: 60, link: 'vless://uuid...' },
+                    ];
+                };
+
+                // 复制功能
+                const copyLink = async (text, index) => {
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        copiedIndex.value = index;
+                        setTimeout(() => copiedIndex.value = -1, 2000);
+                    } catch (err) {
+                        alert('复制失败，请手动复制');
+                    }
+                };
+
+                // 二维码
+                const showQrcode = (link) => {
+                    currentQrLink.value = link;
+                    qrModalOpen.value = true;
+                };
+
+                // 样式辅助函数
+                const getProtocolColor = (proto) => {
+                    const map = {
+                        'vmess': 'bg-purple-500',
+                        'vless': 'bg-blue-500',
+                        'ss': 'bg-green-500',
+                        'trojan': 'bg-orange-500'
+                    };
+                    return map[proto.toLowerCase()] || 'bg-gray-500';
+                };
+
+                const getPingColor = (ping) => {
+                    if (ping < 100) return 'text-green-500';
+                    if (ping < 200) return 'text-yellow-500';
+                    return 'text-red-500';
+                };
+
+                const getPingBg = (ping) => {
+                    if (ping < 100) return 'bg-green-500';
+                    if (ping < 200) return 'bg-yellow-500';
+                    return 'bg-red-500';
+                };
+
+                onMounted(() => {
+                    fetchNodes();
+                });
+
+                return {
+                    nodes, loading, error, lastUpdated, copiedIndex,
+                    qrModalOpen, currentQrLink,
+                    fetchNodes, copyLink, showQrcode,
+                    getProtocolColor, getPingColor, getPingBg
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
