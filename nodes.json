@@ -16,6 +16,14 @@
       "protocol": "trojan",
       "ping": 150,
       "link": "trojan://password@1.1.1.1:443"
+    },
+    {
+      "id": 103,
+      "name": "美国 AWS-2",
+      "country_code": "us",
+      "protocol": "trojan",
+      "ping": 150,
+      "link": "trojan://password@1.1.1.1:443"
     }
   ]
 }
